@@ -27,6 +27,13 @@ video{display:block;width:100%;aspect-ratio:16/9;background:#000}
 .meta h2{font-size:22px;font-weight:600}
 .meta a{color:var(--navy);background:var(--yellow);text-decoration:none;font-weight:600;font-size:15px;padding:9px 16px;border-radius:8px}
 .meta a:hover{filter:brightness(1.08)}
+#tools h2{font-size:28px;font-weight:600;margin:56px 0 18px}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.tool{background:var(--navy-2);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.tool h3{font-size:20px;font-weight:600}
+.tool p{color:var(--faint);font-size:15px;line-height:1.5;flex:1}
+.tool a{align-self:flex-start;color:var(--navy);background:var(--yellow);text-decoration:none;font-weight:600;font-size:15px;padding:9px 16px;border-radius:8px}
+.tool a:hover{filter:brightness(1.08)}
 footer{color:var(--faint);font-size:14px;margin-top:40px}
 footer a{color:var(--faint)}
 button:focus-visible,a:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
@@ -50,14 +57,17 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--yellow);outline-off
   <h1>ANYWAYS <span>Academy</span></h1>
   <p class="lead" id="lead"></p>
   <main id="list"></main>
+  <section id="tools" hidden><h2></h2><div class="tools"></div></section>
   <footer><a href="https://www.anyways.eu">www.anyways.eu</a></footer>
 </div>
-<script type="application/json" id="data">{"items": [{"id": "A1.2", "titles": {"de": "Ihr erstes Projekt anlegen", "en": "Create your first project", "es": "Cree su primer proyecto", "fr": "Créer votre premier projet"}, "videos": {"de": "A1.2/A1.2_v3_de.mp4", "en": "A1.2/A1.2_v3_en.mp4", "es": "A1.2/A1.2_v3_es.mp4", "fr": "A1.2/A1.2_v3_fr.mp4"}, "slides": "A1.2/A1.2_v3_slides.html"}], "langs": ["en", "de", "es", "fr"], "names": {"en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "nl": "Nederlands"}}</script>
+<script type="application/json" id="data">{"items": [{"id": "A1.2", "titles": {"de": "Ihr erstes Projekt anlegen", "en": "Create your first project", "es": "Cree su primer proyecto", "fr": "Créer votre premier projet"}, "videos": {"de": "A1.2/A1.2_v3_de.mp4", "en": "A1.2/A1.2_v3_en.mp4", "es": "A1.2/A1.2_v3_es.mp4", "fr": "A1.2/A1.2_v3_fr.mp4"}, "slides": "A1.2/A1.2_v3_slides.html"}], "tools": [{"href": "tools/kilometre-statistics.html", "title": "Kilometre statistics", "desc": "Drop the GeoJSON files of an ANYWAYS report export and get the kilometres travelled, trip lengths, road types, busiest streets and an estimated travel time. Download as CSV or Word report. Everything runs in your browser."}, {"href": "tools/masterplan-designer.html", "title": "Masterplan Designer", "desc": "Sketch a masterplan on the map: buildings, programme and street profiles, with a 3D view, land-use balance, trip generation, parking demand and a cost estimate. Export to ANYWAYS. Interface in Dutch."}], "langs": ["en", "de", "es", "fr"], "names": {"en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "nl": "Nederlands"}}</script>
 <script>
 const D = JSON.parse(document.getElementById('data').textContent);
 const LEAD = {en:'Short tutorials on how to use ANYWAYS.', fr:'De courts tutoriels pour utiliser ANYWAYS.',
   de:'Kurze Tutorials zur Nutzung von ANYWAYS.', es:'Tutoriales breves sobre cómo usar ANYWAYS.', nl:'Korte tutorials over het gebruik van ANYWAYS.'};
 const READ = {en:'Read as slides', fr:'Lire en diapositives', de:'Als Folien lesen', es:'Leer como diapositivas', nl:'Lezen als slides'};
+const TOOLS = {en:'Tools', fr:'Outils', de:'Werkzeuge', es:'Herramientas', nl:'Tools'};
+const OPEN = {en:'Open tool', fr:'Ouvrir l’outil', de:'Werkzeug öffnen', es:'Abrir herramienta', nl:'Tool openen'};
 const store = {get(){try{return localStorage.getItem('academy-lang')}catch(e){return null}},
                set(v){try{localStorage.setItem('academy-lang', v)}catch(e){}}};
 function pick(){
@@ -79,6 +89,11 @@ function render(){
     return `<article><video controls preload="metadata" src="${esc(v)}"></video>
       <div class="meta"><h2><b>${esc(it.id)}</b>${esc(t)}</h2>${slides}</div></article>`;
   }).join('');
+  const sec = document.getElementById('tools');
+  sec.hidden = !(D.tools && D.tools.length);
+  sec.querySelector('h2').textContent = TOOLS[lang] || TOOLS.en;
+  sec.querySelector('.tools').innerHTML = (D.tools || []).map(t =>
+    `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.desc)}</p><a href="${esc(t.href)}">${esc(OPEN[lang] || OPEN.en)}</a></div>`).join('');
 }
 const nav = document.querySelector('.langs');
 nav.innerHTML = D.langs.map(l => `<button data-l="${l}" title="${esc(D.names[l] || l)}">${l.toUpperCase()}</button>`).join('');
