@@ -286,7 +286,12 @@ function render(){
   }, 10);
 }
 
+/* Le fond de carte peut encore charger quand l'utilisateur clique. On garde donc
+   le dernier calcul et on le rejoue des que la carte est prete, au lieu de le
+   perdre en silence. */
+let pending = null;
 function setData(feats, mode){
+  pending = {feats, mode};
   const src = map.getSource('iso');
   const fc = {type:'FeatureCollection', features:feats};
   if(src) src.setData(fc);
@@ -305,6 +310,14 @@ map.on('load', ()=>{
   map.addSource('org',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
   map.addLayer({id:'org-pt',type:'circle',source:'org',
     paint:{'circle-radius':6,'circle-color':'#1a1a19','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+  if(origin) map.getSource('org').setData({type:'FeatureCollection',features:[
+    {type:'Feature',properties:{},geometry:{type:'Point',coordinates:[origin.lng,origin.lat]}}]});
+  if(pending) setData(pending.feats, pending.mode);
+});
+
+map.on('error', e => {
+  const m = e && e.error && e.error.message;
+  if(m) $('#load').textContent = 'Fond de carte : ' + m;
 });
 
 map.on('click', e=>{
