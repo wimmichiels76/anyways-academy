@@ -248,7 +248,12 @@ function zones(G, dist, B){
     const t = nearestTime(bucket, x, y, 170);
     p.properties.t = Number.isFinite(t) ? t : 999;
   }
-  return turf.isobands(grid, [0, ...B], {zProperty:'t'});
+  const out = turf.isobands(grid, [0, ...B], {zProperty:'t'});
+  /* isobands rend parfois des anneaux dans le mauvais sens : l'aire ressort
+     negative et le remplissage peut se dessiner a l'envers. On remet les
+     anneaux dans le sens de la regle de la main droite. */
+  out.features = out.features.map(f => turf.rewind(f, {reverse:false}));
+  return out;
 }
 
 function bandsOf(){
@@ -295,9 +300,9 @@ function render(){
       legend = [['gain','Accessible seulement dans B'],['same','Accessible dans les deux'],
                 ['lost','Accessible seulement dans A']]
         .map(([c,l])=>`<label class="block"><span class="sw" style="background:${css('--'+c)}"></span>${l}</label>`).join('');
-      rows = [['Seulement B', gain?turf.area(gain)/1e6:0],
-              ['Les deux',    same?turf.area(same)/1e6:0],
-              ['Seulement A', lost?turf.area(lost)/1e6:0]];
+      rows = [['Seulement B', gain?Math.abs(turf.area(gain))/1e6:0],
+              ['Les deux',    same?Math.abs(turf.area(same))/1e6:0],
+              ['Seulement A', lost?Math.abs(turf.area(lost))/1e6:0]];
       $('#msg').textContent = `Différence · départ raccroché à ${Math.round(a.snap)} m du réseau.`;
       paint(feats, 'D');
     } else {
@@ -308,7 +313,7 @@ function render(){
         if(!z){ $('#msg').textContent = 'Zone trop petite pour être contourée.'; return; }
         z.features.forEach((f,i)=>{ f.properties = {band:i}; });
         feats = z.features;
-        rows = feats.map((f,i)=>[`${i?r.B[i-1]:0} – ${r.B[i]} min`, turf.area(f)/1e6]);
+        rows = feats.map((f,i)=>[`${i?r.B[i-1]:0} – ${r.B[i]} min`, Math.abs(turf.area(f))/1e6]);
       } else {
         unit = 'km';
         const t = edgeTimes(r.G, r.dist, r.limit);
