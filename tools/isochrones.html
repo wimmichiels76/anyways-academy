@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isochrones comparatives</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+:root{
+  --surface:#fcfcfb; --ink:#1a1a19; --ink-2:#4a4a46; --muted:#7a7a73; --border:#e5e4e0;
+  /* sequentiel : une seule teinte, clair -> fonce (valide, ordinal, mode clair) */
+  --t1:#86b6ef; --t2:#5598e7; --t3:#2a78d6; --t4:#1c5cab; --t5:#0d366b;
+  /* divergent : perdu <-> inchange <-> gagne */
+  --lost:#e34948; --same:#b8b5ad; --gain:#2a78d6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--ink);background:var(--surface)}
+#app{display:flex;height:100%}
+#panel{width:340px;flex:none;overflow-y:auto;padding:16px;border-right:1px solid var(--border);
+  background:var(--surface)}
+#map{flex:1;min-width:0}
+h1{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0 0 2px}
+h2{font-size:12px;font-weight:600;text-transform:none;color:var(--ink-2);
+  margin:18px 0 8px;padding-top:12px;border-top:1px solid var(--border)}
+h2:first-of-type{border-top:0;padding-top:0}
+p.sub{margin:0 0 14px;color:var(--muted);font-size:12px}
+label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px;cursor:pointer}
+label.block{display:block;cursor:default}
+input[type=file]{width:100%;font-size:12px;margin-top:4px}
+input[type=number],select{width:100%;padding:5px 7px;border:1px solid var(--border);
+  border-radius:5px;font:inherit;font-size:13px;background:#fff;color:var(--ink)}
+button{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:#fff;
+  font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+button:hover{background:#f3f3f1}
+button.primary{background:var(--t3);border-color:var(--t3);color:#fff;font-weight:500}
+button.primary:hover{background:var(--t4);border-color:var(--t4)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:12px;color:var(--muted);margin:8px 0;min-height:18px}
+.warn{color:#8a4a00;background:#fdf4e3;border-left:3px solid #fab219;padding:8px 10px;
+  border-radius:0 4px 4px 0;font-size:12px;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+th,td{text-align:left;padding:4px 2px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:500}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:7px;
+  vertical-align:-1px;border:1px solid rgba(0,0,0,.12)}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <h1>Isochrones comparatives</h1>
+    <p class="sub">Réseau exporté depuis ANYWAYS — les sens uniques sont respectés.</p>
+
+    <h2>1 · Réseaux</h2>
+    <label class="block">Scénario A — existant
+      <input type="file" id="fileA" accept=".geojson,.json">
+    </label>
+    <label class="block" style="margin-top:8px">Scénario B — projet <span style="color:var(--muted)">(facultatif)</span>
+      <input type="file" id="fileB" accept=".geojson,.json">
+    </label>
+    <div class="status" id="load"></div>
+
+    <h2>2 · Paramètres</h2>
+    <label class="block">Seuils, en minutes
+      <input type="text" id="bands" value="2, 4, 6, 8, 10">
+    </label>
+    <label class="block" style="margin-top:8px">Vitesse par défaut (km/h)
+      <input type="number" id="defspeed" value="30" min="5" max="130" step="5">
+    </label>
+    <label style="margin-top:10px">
+      <input type="checkbox" id="oneway" checked>
+      Respecter les sens de circulation
+    </label>
+    <div class="hint">Décochez pour voir l'erreur courante : chaque tronçon devient
+      praticable dans les deux sens.</div>
+
+    <h2>3 · Affichage</h2>
+    <select id="mode">
+      <option value="A">Scénario A</option>
+      <option value="B">Scénario B</option>
+      <option value="D">Différence B − A</option>
+    </select>
+    <button id="clear" style="margin-top:8px">Effacer le point de départ</button>
+
+    <div class="status" id="msg">Cliquez sur la carte pour placer un lieu de départ.</div>
+
+    <h2 id="legtitle">Légende</h2>
+    <div id="legend"></div>
+    <div id="table"></div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const NET = {A:null, B:null};
+let origin = null;
+
+const map = new maplibregl.Map({
+  container:'map',
+  style:'https://tiles.openfreemap.org/styles/positron',
+  center:[2.3285,48.9740], zoom:13
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
+
+/* ---------------------------------------------------------------------------
+   Graphe oriente.
+   L'export ANYWAYS contient UNE ENTITE PAR SENS AUTORISE, la geometrie etant
+   dessinee dans le sens du trafic. On ajoute donc un seul arc par entite, du
+   premier au dernier sommet. C'est tout le point : aucun sens unique n'est
+   parcouru a l'envers. Decocher la case ajoute l'arc inverse - l'erreur que
+   fait QGIS avec son reglage par defaut.
+--------------------------------------------------------------------------- */
+function metres(a, b){
+  const R = 6371008.8, rad = Math.PI/180;
+  const dx = (b[0]-a[0])*rad*Math.cos((a[1]+b[1])/2*rad), dy = (b[1]-a[1])*rad;
+  return Math.hypot(dx,dy)*R;
+}
+function lineLength(c){ let s=0; for(let i=1;i<c.length;i++) s+=metres(c[i-1],c[i]); return s; }
+
+function buildGraph(features, defSpeed, bothWays){
+  const idx = new Map(), nodes = [];
+  const key = c => c[0]+','+c[1];
+  const nodeId = c => {
+    const k = key(c);
+    let i = idx.get(k);
+    if(i === undefined){ i = nodes.length; idx.set(k,i); nodes.push(c); }
+    return i;
+  };
+  const head = [], next = [], from = [], to = [], w = [], eid = [];
+  const addArc = (u,v,cost,f) => { from.push(u); to.push(v); w.push(cost); eid.push(f);
+                                   next.push(head[u] === undefined ? -1 : head[u]); head[u] = next.length-1; };
+  const edges = [];
+  for(const f of features){
+    const g = f.geometry;
+    if(!g || g.type !== 'LineString' || g.coordinates.length < 2) continue;
+    const c = g.coordinates;
+    const len = lineLength(c);
+    if(!(len > 0)) continue;
+    const ms = parseInt(f.properties && f.properties.maxspeed, 10);
+    const kmh = Number.isFinite(ms) && ms > 0 ? ms : defSpeed;
+    const cost = len / (kmh/3.6);                 // secondes
+    const u = nodeId(c[0]), v = nodeId(c[c.length-1]);
+    const e = edges.length;
+    edges.push({u, v, len, coords:c});
+    addArc(u, v, cost, e);
+    if(bothWays) addArc(v, u, cost, e);
+  }
+  return {nodes, head, next, from, to, w, eid, edges};
+}
+
+/* tas binaire minimal */
+class Heap{
+  constructor(){ this.a=[]; }
+  push(p,v){ const a=this.a; a.push([p,v]); let i=a.length-1;
+    while(i>0){ const j=(i-1)>>1; if(a[j][0]<=a[i][0])break; [a[i],a[j]]=[a[j],a[i]]; i=j; } }
+  pop(){ const a=this.a, top=a[0], last=a.pop();
+    if(a.length){ a[0]=last; let i=0;
+      for(;;){ const l=2*i+1, r=l+1; let m=i;
+        if(l<a.length&&a[l][0]<a[m][0])m=l; if(r<a.length&&a[r][0]<a[m][0])m=r;
+        if(m===i)break; [a[i],a[m]]=[a[m],a[i]]; i=m; } }
+    return top; }
+  get size(){ return this.a.length; }
+}
+
+function nearestNode(G, lon, lat){
+  let best=-1, bd=Infinity;
+  for(let i=0;i<G.nodes.length;i++){
+    const d = metres(G.nodes[i], [lon,lat]);
+    if(d<bd){ bd=d; best=i; }
+  }
+  return {node:best, dist:bd};
+}
+
+function dijkstra(G, src, limit){
+  const dist = new Float64Array(G.nodes.length).fill(Infinity);
+  dist[src] = 0;
+  const h = new Heap(); h.push(0, src);
+  while(h.size){
+    const [d,u] = h.pop();
+    if(d > dist[u]) continue;
+    if(d > limit) break;
+    for(let a = G.head[u] === undefined ? -1 : G.head[u]; a !== -1; a = G.next[a]){
+      const v = G.to[a], nd = d + G.w[a];
+      if(nd < dist[v] && nd <= limit){ dist[v] = nd; h.push(nd, v); }
+    }
+  }
+  return dist;
+}
+
+/* arrivee la plus tot sur chaque troncon, en secondes */
+function edgeTimes(G, dist, limit){
+  const t = new Float64Array(G.edges.length).fill(Infinity);
+  for(let a=0; a<G.to.length; a++){
+    const e = G.eid[a];
+    const du = dist[G.from[a]];
+    if(!Number.isFinite(du)) continue;
+    const arr = du + G.w[a];
+    if(arr <= limit && arr < t[e]) t[e] = arr;
+  }
+  return t;
+}
+
+function bands(){
+  return $('#bands').value.split(',').map(s=>parseFloat(s.trim()))
+         .filter(n=>Number.isFinite(n)&&n>0).sort((a,b)=>a-b);
+}
+const RAMP = ['--t1','--t2','--t3','--t4','--t5'];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function compute(which){
+  const net = NET[which];
+  if(!net || !origin) return null;
+  const B = bands(); if(!B.length) return null;
+  const limit = B[B.length-1]*60;
+  const G = net.graph;
+  const s = nearestNode(G, origin.lng, origin.lat);
+  const dist = dijkstra(G, s.node, limit);
+  const t = edgeTimes(G, dist, limit);
+  return {G, t, B, limit, snap:s.dist};
+}
+
+function featuresFor(r){
+  const out = [];
+  for(let e=0;e<r.G.edges.length;e++){
+    if(!Number.isFinite(r.t[e])) continue;
+    const min = r.t[e]/60;
+    let b = r.B.findIndex(x => min <= x);
+    if(b < 0) continue;
+    out.push({type:'Feature', properties:{band:b, len:r.G.edges[e].len},
+              geometry:{type:'LineString', coordinates:r.G.edges[e].coords}});
+  }
+  return out;
+}
+
+function render(){
+  const mode = $('#mode').value;
+  if(!origin){ setData([]); $('#legend').innerHTML=''; $('#table').innerHTML=''; return; }
+  $('#msg').textContent = 'Calcul…';
+
+  setTimeout(()=>{
+    let feats = [], rows = [], legend = '';
+    if(mode === 'D'){
+      const a = compute('A'), b = compute('B');
+      if(!a || !b){ $('#msg').textContent = 'Chargez les deux réseaux pour la différence.'; return; }
+      const keyOf = c => c[0]+','+c[1]+'|'+c[c.length-1][0]+','+c[c.length-1][1];
+      const inA = new Map(), inB = new Map();
+      for(let e=0;e<a.G.edges.length;e++) if(Number.isFinite(a.t[e])) inA.set(keyOf(a.G.edges[e].coords), a.G.edges[e]);
+      for(let e=0;e<b.G.edges.length;e++) if(Number.isFinite(b.t[e])) inB.set(keyOf(b.G.edges[e].coords), b.G.edges[e]);
+      let L={lost:0, same:0, gain:0};
+      for(const [k,ed] of inA){ const cls = inB.has(k) ? 'same' : 'lost'; L[cls]+=ed.len;
+        feats.push({type:'Feature',properties:{cls},geometry:{type:'LineString',coordinates:ed.coords}}); }
+      for(const [k,ed] of inB){ if(inA.has(k)) continue; L.gain+=ed.len;
+        feats.push({type:'Feature',properties:{cls:'gain'},geometry:{type:'LineString',coordinates:ed.coords}}); }
+      legend = [['gain','Accessible seulement dans B'],['same','Accessible dans les deux'],
+                ['lost','Accessible seulement dans A']]
+        .map(([c,l])=>`<label class="block"><span class="sw" style="background:${css('--'+c)}"></span>${l}</label>`).join('');
+      rows = [['Seulement B', L.gain],['Les deux', L.same],['Seulement A', L.lost]];
+      $('#msg').textContent = `Différence calculée · départ raccroché à ${Math.round(a.snap)} m du réseau.`;
+    } else {
+      const r = compute(mode);
+      if(!r){ $('#msg').textContent = `Chargez d'abord le réseau ${mode}.`; return; }
+      feats = featuresFor(r);
+      const tot = new Array(r.B.length).fill(0);
+      for(const f of feats) tot[f.properties.band] += f.properties.len;
+      legend = r.B.map((m,i)=>{
+        const prev = i ? r.B[i-1] : 0;
+        return `<label class="block"><span class="sw" style="background:${css(RAMP[Math.min(i,4)])}"></span>${prev} – ${m} min</label>`;
+      }).join('');
+      rows = r.B.map((m,i)=>[`${i?r.B[i-1]:0} – ${m} min`, tot[i]]);
+      $('#msg').textContent = `Scénario ${mode} · départ raccroché à ${Math.round(r.snap)} m du réseau.`;
+    }
+    setData(feats, mode);
+    $('#legtitle').textContent = 'Légende';
+    $('#legend').innerHTML = legend;
+    const sum = rows.reduce((s,[,v])=>s+v,0);
+    $('#table').innerHTML =
+      '<table><thead><tr><th>Classe</th><th class="num">km de voirie</th></tr></thead><tbody>'
+      + rows.map(([l,v])=>`<tr><td>${l}</td><td class="num">${(v/1000).toFixed(1)}</td></tr>`).join('')
+      + `<tr><td><b>Total</b></td><td class="num"><b>${(sum/1000).toFixed(1)}</b></td></tr>`
+      + '</tbody></table>';
+  }, 10);
+}
+
+function setData(feats, mode){
+  const src = map.getSource('iso');
+  const fc = {type:'FeatureCollection', features:feats};
+  if(src) src.setData(fc);
+  if(!map.getLayer('iso-line')) return;
+  const paint = (mode === 'D')
+    ? ['match',['get','cls'],'gain',css('--gain'),'lost',css('--lost'),css('--same')]
+    : ['match',['get','band'],0,css('--t1'),1,css('--t2'),2,css('--t3'),3,css('--t4'),css('--t5')];
+  map.setPaintProperty('iso-line','line-color',paint);
+}
+
+map.on('load', ()=>{
+  map.addSource('iso',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  map.addLayer({id:'iso-line',type:'line',source:'iso',
+    layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-width':['interpolate',['linear'],['zoom'],11,1.6,14,3,17,6],'line-opacity':.92}});
+  map.addSource('org',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  map.addLayer({id:'org-pt',type:'circle',source:'org',
+    paint:{'circle-radius':6,'circle-color':'#1a1a19','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+});
+
+map.on('click', e=>{
+  origin = e.lngLat;
+  map.getSource('org').setData({type:'FeatureCollection',features:[
+    {type:'Feature',properties:{},geometry:{type:'Point',coordinates:[origin.lng,origin.lat]}}]});
+  render();
+});
+
+function load(which, file){
+  if(!file) return;
+  $('#load').textContent = `Lecture de ${file.name}…`;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const gj = JSON.parse(fr.result);
+      const feats = gj.features || [];
+      NET[which] = {name:file.name, feats};
+      rebuild(which);
+      const n = NET[which].graph.edges.length;
+      $('#load').textContent = `A : ${NET.A ? NET.A.graph.edges.length.toLocaleString('fr') + ' tronçons' : '—'}`
+        + ` · B : ${NET.B ? NET.B.graph.edges.length.toLocaleString('fr') + ' tronçons' : '—'}`;
+      if(which === 'A' && feats.length){
+        const c = feats[0].geometry.coordinates[0];
+        map.jumpTo({center:c, zoom:13});
+      }
+      render();
+    }catch(err){ $('#load').textContent = 'Fichier illisible : ' + err.message; }
+  };
+  fr.readAsText(file);
+}
+function rebuild(which){
+  if(!NET[which]) return;
+  NET[which].graph = buildGraph(NET[which].feats, parseFloat($('#defspeed').value)||30,
+                                !$('#oneway').checked);
+}
+$('#fileA').addEventListener('change', e => load('A', e.target.files[0]));
+$('#fileB').addEventListener('change', e => load('B', e.target.files[0]));
+$('#mode').addEventListener('change', render);
+$('#bands').addEventListener('change', render);
+for(const id of ['#defspeed','#oneway']){
+  $(id).addEventListener('change', ()=>{ rebuild('A'); rebuild('B'); render(); });
+}
+$('#clear').addEventListener('click', ()=>{
+  origin = null;
+  map.getSource('org').setData({type:'FeatureCollection',features:[]});
+  setData([]);
+  $('#legend').innerHTML=''; $('#table').innerHTML='';
+  $('#msg').textContent = 'Cliquez sur la carte pour placer un lieu de départ.';
+});
+</script>
+</body>
+</html>
