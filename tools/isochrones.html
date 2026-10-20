@@ -52,7 +52,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   <div id="panel">
     <h1>Isochrones comparatives</h1>
     <p class="sub">Réseau exporté depuis ANYWAYS — les sens uniques sont respectés.<br>
-      <span style="color:var(--muted)">version 2026-10-21</span></p>
+      <span style="color:var(--muted)">version 2026-10-21b</span></p>
 
     <h2>1 · Réseaux</h2>
     <label class="block">Scénario A — existant
@@ -258,10 +258,33 @@ function zones(G, dist, B){
   }
   const out = turf.isobands(grid, [0, ...B], {zProperty:'t'});
   /* isobands rend parfois des anneaux dans le mauvais sens : l'aire ressort
-     negative et le remplissage peut se dessiner a l'envers. On remet les
-     anneaux dans le sens de la regle de la main droite. */
+     negative et le remplissage se dessine a l'envers. */
   out.features = out.features.map(f => turf.rewind(f, {reverse:false}));
-  return out;
+  return dropSlivers(out);
+}
+
+/* Les anneaux minuscules sont du bruit d'interpolation - plus petits que le
+   rayon de rattachement, ils ne representent aucun ilot reel. Surtout, en
+   dezoomant ils se reduisent a moins d'un pixel de tuile, s'effondrent en
+   triangles et produisent les rayures qu'on voit sur la carte. On les retire. */
+const MIN_RING_M2 = 60000;
+function dropSlivers(fc){
+  const keep = [];
+  for(const f of fc.features){
+    const polys = f.geometry.type === 'MultiPolygon'
+      ? f.geometry.coordinates : [f.geometry.coordinates];
+    const kept = [];
+    for(const p of polys){
+      if(Math.abs(turf.area(turf.polygon([p[0]]))) < MIN_RING_M2) continue;
+      kept.push([p[0], ...p.slice(1).filter(h =>
+        Math.abs(turf.area(turf.polygon([h]))) >= MIN_RING_M2)]);
+    }
+    if(!kept.length) continue;
+    keep.push({type:'Feature', properties:f.properties,
+      geometry: kept.length === 1 ? {type:'Polygon', coordinates:kept[0]}
+                                  : {type:'MultiPolygon', coordinates:kept}});
+  }
+  return {type:'FeatureCollection', features:keep};
 }
 
 function bandsOf(){
@@ -370,7 +393,10 @@ function paint(feats, kind){
 }
 
 map.on('load', ()=>{
-  map.addSource('iso',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  /* tolerance 0 : sans cela MapLibre simplifie par niveau de zoom et casse les
+     anneaux en dezoomant (17 anneaux sur 44 abimes au zoom 10, mesure). */
+  map.addSource('iso',{type:'geojson',tolerance:0,
+    data:{type:'FeatureCollection',features:[]}});
   map.addLayer({id:'iso-fill',type:'fill',source:'iso',paint:{'fill-opacity':0.55}});
   map.addLayer({id:'iso-line',type:'line',source:'iso',
     layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':1.2}});
