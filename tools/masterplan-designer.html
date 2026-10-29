@@ -316,7 +316,11 @@ details.help p{font-size:11px;color:var(--mut);line-height:1.5}
         <div class="td-legend" id="td-legend"></div>
         <div class="td-ctrl">
           <div class="td-crow">
-            <label><input id="threed_osm" type="checkbox" checked style="width:auto" onchange="render3D()">OSM</label>
+            <label title="Kaart als ondergrond"><input id="threed_osm" type="checkbox" checked style="width:auto" onchange="render3D()">Kaart</label>
+            <select id="threed_base" onchange="setBase3D(this.value)" title="Ondergrond in 3D" style="width:auto;padding:1px 2px;font-size:11px">
+              <option value="auto">automatisch</option><option value="grbgrijs">GRB grijs</option><option value="grb">GRB</option>
+              <option value="ortho">Luchtfoto Vl.</option><option value="esri">Luchtfoto wereld</option><option value="kaart">= 2D-kaart</option>
+            </select>
             <label><input id="threed_shadow" type="checkbox" checked style="width:auto" onchange="render3D()">Schaduw</label>
             <label>laag(m)<input id="threed_fh" type="number" min="2" step="0.1" value="3.2" style="width:48px" oninput="render3D()"></label>
           </div>
@@ -753,8 +757,20 @@ function baseUrl(d){return d.url;}
 const LS_BASE=LS+'_basemap';
 // standaard: topografische kaart; een eerder gekozen ondergrond blijft bewaard
 let baseKey=(function(){try{return BASE_DEFS[localStorage.getItem(LS_BASE)]?localStorage.getItem(LS_BASE):'topo';}catch(e){return 'topo';}})();
+// 3D-ondergrond: eigen keuze, want de 3D-weergave vraagt z 17-19 en de Esri-straat- en topokaarten zijn daar
+// buiten de grote steden vaak leeg (effen tegel). 'automatisch' = luchtfoto Vlaanderen, elders de Esri-luchtfoto.
+const LS_BASE3D=LS+'_basemap3d';
+let base3D=(function(){try{return localStorage.getItem(LS_BASE3D)||'auto';}catch(e){return 'auto';}})();
+function setBase3D(v){base3D=v;try{localStorage.setItem(LS_BASE3D,v);}catch(e){}render3D();}
+function inVlaanderen(lat,lng){return lat>50.68&&lat<51.51&&lng>2.54&&lng<5.92;}
+function key3D(z,x,y){
+ if(base3D==='kaart')return baseKey;
+ if(base3D!=='auto'&&BASE_DEFS[base3D])return base3D;
+ const n=Math.pow(2,z), lng=(x+0.5)/n*360-180, t=Math.PI-2*Math.PI*(y+0.5)/n;
+ const lat=180/Math.PI*Math.atan(0.5*(Math.exp(t)-Math.exp(-t)));
+ return inVlaanderen(lat,lng)?'ortho':'esri';}
 // de 3D-weergave vraagt altijd z ≤ 19, dus binnen bereik van elke bron
-function tileUrl3D(z,x,y){const d=BASE_DEFS[baseKey]||BASE_DEFS.grb;
+function tileUrl3D(z,x,y){const d=BASE_DEFS[key3D(z,x,y)]||BASE_DEFS.grb;
  return baseUrl(d).replace('{z}',z).replace('{x}',x).replace('{y}',y);}
 
 let baseTiles={};
@@ -1246,17 +1262,21 @@ function osmGround(pts,toM,proj){
  if((txMax-txMin+1)*(tyMax-tyMin+1)>200||txMax<txMin||tyMax<tyMin)return '';
  const px2lon=px=>px/(256*n)*360-180;
  const py2lat=py=>{const t=Math.PI-2*Math.PI*py/(256*n);return 180/Math.PI*Math.atan(0.5*(Math.exp(t)-Math.exp(-t)));};
- const pipe=(px,py)=>{const P=proj(...(function(){const m=toM({lat:py2lat(py),lng:px2lon(px)});return [m.x,m.y,0];})());return [P.X,P.Y];};
- const s0=[txMin*256,tyMin*256],s1=[(txMax+1)*256,tyMin*256],s2=[txMin*256,(tyMax+1)*256];
+ // tegelpixels RELATIEF t.o.v. de eerste tegel: absolute wereldpixels (tot ± 1,3e8 op z19) zijn te groot voor
+ // de float32-precisie van SVG-transforms en schoven de ondergrond miljoenen pixels buiten beeld
+ const ox=txMin*256, oy=tyMin*256;
+ const pipe=(px,py)=>{const m=toM({lat:py2lat(py+oy),lng:px2lon(px+ox)});const P=proj(m.x,m.y,0);return [P.X,P.Y];};
+ const s0=[0,0],s1=[(txMax-txMin+1)*256,0],s2=[0,(tyMax-tyMin+1)*256];
  const M=affine3(s0,s1,s2,pipe(...s0),pipe(...s1),pipe(...s2));
  let g=`<g transform="matrix(${M.a} ${M.b} ${M.c} ${M.d} ${M.e} ${M.f})" opacity="0.95">`;
  for(let tx=txMin;tx<=txMax;tx++)for(let ty=tyMin;ty<=tyMax;ty++)
-   g+=`<image href="${tileUrl3D(z,tx,ty)}" x="${tx*256}" y="${ty*256}" width="257" height="257" preserveAspectRatio="none"/>`;
+   g+=`<image href="${tileUrl3D(z,tx,ty)}" x="${(tx-txMin)*256}" y="${(ty-tyMin)*256}" width="257" height="257" preserveAspectRatio="none"/>`;
  return g+'</g>';
 }
 
 function render3D(){
  const host=document.getElementById('threed'); if(!host)return;
+ const sb=document.getElementById('threed_base'); if(sb&&sb.value!==base3D)sb.value=base3D;
  const leg=document.getElementById('td-legend');
  const fh=Math.max(1,numv('threed_fh',3.2));
  if(!buildings.length&&!zones.length&&!roads.length){host.innerHTML='<div class="td-empty">Teken gebouwen, zones of wegen in de tab <b>Gebouwen</b> om hier het 3D-model te zien.</div>';if(leg)leg.innerHTML='';return;}
