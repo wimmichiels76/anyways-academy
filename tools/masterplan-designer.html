@@ -229,6 +229,7 @@ details.help p{font-size:11px;color:var(--mut);line-height:1.5}
       <button class="btn pri" onclick="exportPoints()" title="GeoJSON-puntlaag voor ANYWAYS">⬇ ANYWAYS</button>
       <button class="btn" onclick="exportFull()" title="Volledig GeoJSON (polygonen)">⬇ GeoJSON</button>
       <button class="btn" onclick="exportCSV()" title="CSV programma">⬇ CSV</button>
+      <button class="btn" onclick="openReport()" title="Rapport (A4) openen — afdrukken of bewaren als PDF">📄 Rapport</button>
       <button class="btn" id="btnSave" onclick="saveFile(event)" title="Project opslaan (.json) — Shift+klik: opslaan als">💾</button>
       <button class="btn" onclick="openFile()" title="Project openen">📂</button>
       <button class="btn" onclick="wipe()" title="Alles wissen">🗑</button>
@@ -1786,6 +1787,88 @@ function wipe(){if(!confirm('Alles wissen?'))return;setHandle(null);localStorage
 function save(){try{localStorage.setItem(LS,JSON.stringify(snapshot()));}catch(e){}}
 
 // ── helpers ──
+// ── Rapport: A4-document in een nieuw tabblad, met dezelfde (berekende) tabellen als de tool ──
+function openReport(){
+ if(typeof recompute==='function')recompute();
+ if(typeof render3D==='function')render3D();
+ const H=id=>{const el=document.getElementById(id);return el?el.innerHTML:'';};
+ const T=id=>{const el=document.getElementById(id);return el?el.textContent:'';};
+ const opt=id=>{const el=document.getElementById(id);return el&&el.selectedIndex>=0?el.options[el.selectedIndex].text:'';};
+ const tab=id=>`<table class="mini">${H(id)}</table>`;
+ const pname=val('pname')||'Masterplan';
+ const datum=new Date().toLocaleDateString('nl-BE',{day:'numeric',month:'long',year:'numeric'});
+ // 3D-model (SVG met ondergrond), op ware verhoudingen
+ const svgEl=document.querySelector('#threed svg');
+ let svg3d='';
+ if(svgEl){const c=svgEl.cloneNode(true);c.removeAttribute('style');c.setAttribute('width','100%');
+   c.setAttribute('preserveAspectRatio','xMidYMid meet');c.style.cssText='width:100%;height:auto;max-height:118mm;display:block';
+   svg3d=c.outerHTML;}
+ // bouwprogramma per gebouw
+ let bouw='<tr><th>Gebouw</th><th>Grondopp. (m²)</th><th>Lagen</th><th style="text-align:left">Programma</th><th>BVO (m²)</th><th>Eenheden</th><th>Ondergronds</th></tr>';
+ let sg=0,sb=0;
+ buildings.forEach(b=>{const a=b._agg||{};const N=b.bands.reduce((s,x)=>s+(x.floors||0),0);
+   const prog=b.bands.filter(x=>x.floors).map(x=>{const f=FN[x.fn]||{label:x.fn};
+     const extra=x.fn==='wonen'?` (${esc(x.woningtype||'')}, ${fmt0(x.dwSize)} m²/woning)`:(x.sub?` (${esc(x.sub)})`:'')+(f.mode==='unit'&&x.driver&&f.eenheid&&!/m²/.test(f.eenheid)?` · ${fmt0(x.driver)} ${esc(f.eenheid)}`:'');
+     return `${x.floors} × ${esc(f.label)}${extra}`;}).join('<br>');
+   sg+=b.area||0; sb+=a.gfa||0;
+   bouw+=`<tr><td>${esc(b.name)}</td><td>${fmt0(b.area)}</td><td>${N}</td><td style="text-align:left">${prog||'—'}</td><td>${fmt0(a.gfa||0)}</td><td>${a.units?fmt1(a.units):'—'}</td><td>${b.ugLevels?b.ugLevels+' laag/lagen':'—'}</td></tr>`;});
+ bouw+=`<tr class="tot"><td>Totaal</td><td>${fmt0(sg)}</td><td></td><td></td><td>${fmt0(sb)}</td><td></td><td></td></tr>`;
+ const scen=[['Autoverkeer-reductie (mobiliteitsmaatregelen)',(val('v_carred')||0)+' %'],['Combinatiefactor parkeren',val('v_combi')],
+   ['Parkeernorm',opt('v_norm')],['Deelwagens',val('v_deel')+' (1 deelwagen vervangt '+val('v_deelratio')+' privéwagens)']]
+   .map(([k,v])=>`<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join('');
+ const css=`
+ :root{--ink:#1f2420;--mut:#6b7168;--line:#e2e5df;--acc:#0d7c6e;--am:#2f80ed;--pm:#e8500a;--aadt:#5b3fc9}
+ *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);font-size:10.5pt;line-height:1.4;background:#eef0ec}
+ .page{width:210mm;margin:8mm auto;background:#fff;padding:16mm 16mm 14mm;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+ .bar{position:sticky;top:0;background:#0d7c6e;color:#fff;padding:8px 14px;display:flex;gap:10px;align-items:center;font-size:13px;z-index:5}
+ .bar button{cursor:pointer;border:0;border-radius:6px;padding:6px 12px;font-weight:600;background:#fff;color:#0d7c6e}
+ .kop{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--acc);padding-bottom:8px;margin-bottom:14px}
+ .kop h1{margin:0;font-size:20pt;color:var(--acc)} .kop .meta{font-size:9pt;color:var(--mut);text-align:right}
+ h2{font-size:12.5pt;color:var(--acc);margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:3px}
+ table.mini{width:100%;border-collapse:collapse;font-size:9.5pt;margin:4px 0 8px}
+ table.mini th,table.mini td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:right;vertical-align:top}
+ table.mini th:first-child,table.mini td:first-child{text-align:left}
+ table.mini th{color:var(--mut);font-weight:600;font-size:8.5pt;text-transform:uppercase;letter-spacing:.3px;background:#f6f7f4}
+ table.mini tr.tot td{font-weight:700;border-top:1.5px solid #c9cec5}
+ .foot-note{color:var(--mut);font-size:8.5pt} .empty{color:var(--mut)} .hint{color:var(--mut);font-size:8.5pt;margin:4px 0}
+ .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0}
+ .kpi{border:1px solid var(--line);border-top:4px solid var(--am);border-radius:6px;padding:8px;text-align:center}
+ .kpi.pm{border-top-color:var(--pm)} .kpi.ad{border-top-color:var(--aadt)}
+ .kpi .l{font-size:8pt;color:var(--mut);text-transform:uppercase;letter-spacing:.4px} .kpi .v{font-size:17pt;font-weight:800} .kpi .s{font-size:8.5pt;color:var(--mut)}
+ .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ .moneybar{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0;font-size:9.5pt}
+ .moneybar.tt{font-weight:800;font-size:11pt;border-top:2px solid var(--ink);border-bottom:none;margin-top:4px}
+ .fig{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#e9ece7}
+ .bron{font-size:8pt;color:var(--mut);border-top:1px solid var(--line);margin-top:14px;padding-top:6px}
+ .avoid{break-inside:avoid}
+ @page{size:A4;margin:12mm}
+ @media print{body{background:#fff}.bar{display:none}.page{width:auto;margin:0;padding:0;box-shadow:none}h2{break-after:avoid}}`;
+ const html=`<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>${esc(pname)} — rapport Masterplan Designer</title><style>${css}</style></head><body>
+ <div class="bar"><b>Rapport</b><span style="flex:1"></span><button onclick="print()">Afdrukken / bewaren als PDF</button></div>
+ <div class="page">
+  <div class="kop"><div><div style="font-size:9pt;color:var(--mut);text-transform:uppercase;letter-spacing:.6px">Masterplan Designer · verkeer · parkeren · kosten</div><h1>${esc(pname)}</h1></div>
+   <div class="meta">${datum}<br>Gebiedstype: ${esc(opt('gebied'))}<br>Maatgevende dag: ${esc(opt('dag'))} · spitsuren ${pad2(+val('amHour'))} u en ${pad2(+val('pmHour'))} u</div></div>
+  ${svg3d?`<h2>Massamodel</h2><div class="fig avoid">${svg3d}</div>`:''}
+  <h2>Bouwprogramma</h2><table class="mini">${bouw}</table>
+  <div class="two avoid"><div><h2>Programma per functie</h2>${tab('progtab')}</div><div><h2>Ruimtebalans</h2>${tab('zonetab')}</div></div>
+  <h2>Verkeersgeneratie</h2>
+  <div class="kpis avoid">
+   <div class="kpi am"><div class="l">Ochtendspits</div><div class="v">${esc(T('k-am'))}</div><div class="s">${esc(T('k-am-s'))}</div></div>
+   <div class="kpi pm"><div class="l">Avondspits</div><div class="v">${esc(T('k-pm'))}</div><div class="s">${esc(T('k-pm-s'))}</div></div>
+   <div class="kpi ad"><div class="l">AADT (mvt/dag)</div><div class="v">${esc(T('k-ad'))}</div><div class="s">auto, 2 richtingen</div></div></div>
+  <div class="hint">${H('gennote')}</div>
+  <div class="two avoid"><div><h2>Etmaalprofiel autoverkeer</h2>${H('profile')}</div><div><h2>Modal split (personen/dag)</h2>${tab('modetab')}</div></div>
+  <div class="two avoid"><div><h2>Verkeer per functie</h2>${tab('fntab')}</div><div><h2>Scenario</h2><table class="mini">${scen}</table></div></div>
+  <div class="avoid"><h2>Productie en attractie per gebouw</h2>${tab('bldtab')}
+   <div class="hint"><b>Attractie</b> = aankomsten, <b>productie</b> = vertrekken. Spits = autobewegingen in het piekuur; AADT = autobewegingen per dag, beide richtingen.</div></div>
+  <div class="two avoid"><div><h2>Parkeren</h2>${tab('parktab')}</div><div><h2>Kostenraming</h2>${H('money')}</div></div>
+  <div class="bron">Kencijfers verkeersgeneratie en parkeren: Richtlijnenboek Mobiliteitseffectenstudies — Mobiliteitstoets &amp; MOBER, Departement MOW Vlaanderen, v3 (dec 2025), hoofdstuk 9. Kencijfers zijn richtwaarden; projectspecifieke cijfers gaan voor. Bouwkosten zijn indicatieve richtprijzen (België 2025). Ondergrond: ${esc(base3D==='kaart'?(BASE_DEFS[baseKey]||{}).attr||'':'© Digitaal Vlaanderen / Esri')}. Gemaakt met de ANYWAYS Masterplan Designer.</div>
+ </div></body></html>`;
+ const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+ const w=window.open(url,'_blank');
+ if(!w)dl(html,slug(pname)+'_rapport.html','text/html');   // pop-up geblokkeerd: download het rapport
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function val(id){return document.getElementById(id).value;}
 function setv(id,v){const el=document.getElementById(id);if(el)el.value=v;}
