@@ -229,8 +229,8 @@ details.help p{font-size:11px;color:var(--mut);line-height:1.5}
       <button class="btn pri" onclick="exportPoints()" title="GeoJSON-puntlaag voor ANYWAYS">⬇ ANYWAYS</button>
       <button class="btn" onclick="exportFull()" title="Volledig GeoJSON (polygonen)">⬇ GeoJSON</button>
       <button class="btn" onclick="exportCSV()" title="CSV programma">⬇ CSV</button>
-      <button class="btn" onclick="saveFile()" title="Project opslaan (.json)">💾</button>
-      <button class="btn" onclick="document.getElementById('imp').click()" title="Project openen">📂</button>
+      <button class="btn" id="btnSave" onclick="saveFile(event)" title="Project opslaan (.json) — Shift+klik: opslaan als">💾</button>
+      <button class="btn" onclick="openFile()" title="Project openen">📂</button>
       <button class="btn" onclick="wipe()" title="Alles wissen">🗑</button>
       <input id="imp" type="file" accept=".json" style="display:none" onchange="loadFile(event)">
     </div>
@@ -1718,8 +1718,34 @@ function snapshot(){
    showFacades,
    bid,zid,rdid,rcid};
 }
-function saveFile(){dl(JSON.stringify(snapshot(),null,2),slug(val('pname'))+'.json','application/json');}
-function loadFile(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{restore(JSON.parse(rd.result));}catch(err){alert('Kon bestand niet lezen: '+err);}};rd.readAsText(f);e.target.value='';}
+// Opslaan: een geopend of eerder bewaard bestand wordt overschreven (File System Access API, Chrome/Edge).
+// Shift+klik = opslaan als. Browsers zonder die API (Firefox, Safari) downloaden zoals voorheen.
+let projHandle=null;
+const FS_OK=!!(window.showOpenFilePicker&&window.showSaveFilePicker);
+const JSON_TYPES=[{description:'Masterplan-project',accept:{'application/json':['.json']}}];
+function setHandle(h){projHandle=h;const b=document.getElementById('btnSave');
+ if(b)b.title=h?'Opslaan in '+h.name+' (overschrijven) — Shift+klik: opslaan als':'Project opslaan (.json) — Shift+klik: opslaan als';}
+function flash(msg){let t=document.getElementById('mpd_flash');
+ if(!t){t=document.createElement('div');t.id='mpd_flash';t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d2b36;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;z-index:9999;transition:opacity .3s';document.body.appendChild(t);}
+ t.textContent=msg;t.style.opacity=1;clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity=0,2400);}
+async function saveFile(e){
+ const txt=JSON.stringify(snapshot(),null,2), naam=slug(val('pname'))+'.json';
+ if(!FS_OK){dl(txt,naam,'application/json');return;}
+ try{
+  let h=(e&&e.shiftKey)?null:projHandle;
+  if(h&&h.queryPermission&&(await h.queryPermission({mode:'readwrite'}))!=='granted'&&(await h.requestPermission({mode:'readwrite'}))!=='granted')h=null;
+  if(!h)h=await window.showSaveFilePicker({suggestedName:projHandle?projHandle.name:naam,types:JSON_TYPES});
+  const w=await h.createWritable(); await w.write(txt); await w.close();
+  setHandle(h); flash('Opgeslagen in '+h.name);
+ }catch(err){if(err&&err.name==='AbortError')return; alert('Opslaan mislukt: '+err+'. Het project wordt gedownload.'); dl(txt,naam,'application/json');}
+}
+async function openFile(){
+ if(!FS_OK){document.getElementById('imp').click();return;}
+ try{const [h]=await window.showOpenFilePicker({types:JSON_TYPES,multiple:false});
+  const f=await h.getFile(); restore(JSON.parse(await f.text())); setHandle(h); flash('Geopend: '+h.name);}
+ catch(err){if(err&&err.name==='AbortError')return; alert('Kon bestand niet lezen: '+err);}
+}
+function loadFile(e){setHandle(null);const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{restore(JSON.parse(rd.result));}catch(err){alert('Kon bestand niet lezen: '+err);}};rd.readAsText(f);e.target.value='';}
 function restore(d){
  setv('pname',d.pname||'Masterplan');setv('gebied',d.gebied??8);setv('dag',d.dag||'weekdag');
  setv('amHour',d.amHour??8);setv('pmHour',d.pmHour??17);
@@ -1753,7 +1779,7 @@ function restore(d){
  if(d.tab)setTab(d.tab);
  recompute();
 }
-function wipe(){if(!confirm('Alles wissen?'))return;localStorage.removeItem(LS);
+function wipe(){if(!confirm('Alles wissen?'))return;setHandle(null);localStorage.removeItem(LS);
  buildings.forEach(b=>drawnItems.removeLayer(b.layer));zones.forEach(z=>drawnItems.removeLayer(z.layer));
  roads.forEach(r=>{drawnItems.removeLayer(r.layer);if(r.ribbon)roadLayer.removeLayer(r.ribbon);});
  buildings=[];zones=[];roads=[];bid=1;zid=1;rdid=1;K=JSON.parse(JSON.stringify(K0));Kdirty=false;if(kencOpen)renderKenc();recompute();}
