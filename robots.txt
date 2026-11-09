@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://wimmichiels76.github.io/anyways-academy/sitemap.xml
