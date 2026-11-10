@@ -18,44 +18,74 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#161c2d;--navy-2:#1e2639;--line:rgba(255,255,255,.12);--text:#fff;--faint:rgba(255,255,255,.62);--yellow:#ffc000}
+:root{--navy:#161c2d;--navy-2:#1e2639;--navy-3:#252e44;--line:rgba(255,255,255,.12);--text:#fff;--faint:rgba(255,255,255,.62);--dim:rgba(255,255,255,.38);--yellow:#ffc000}
 *{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{background:var(--navy);color:var(--text);font-family:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1040px;margin:0 auto;padding:28px 24px 64px}
-header{display:flex;align-items:center;justify-content:space-between;gap:16px}
-header svg{height:30px;width:auto;display:block}
-.langs{display:flex;gap:4px;flex-wrap:wrap}
-.langs button{font:inherit;font-size:14px;font-weight:500;color:var(--faint);background:none;border:1px solid transparent;border-radius:6px;padding:5px 9px;cursor:pointer}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:rgba(22,28,45,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:22px;height:64px}
+.top svg{height:28px;width:auto;display:block}
+.menu{display:flex;gap:4px;flex:1}
+.menu a{text-decoration:none;color:var(--faint);font-size:15px;font-weight:500;padding:7px 10px;border-radius:8px}
+.menu a:hover{color:#fff;background:var(--navy-2)}
+.langs{display:flex;gap:2px}
+.langs button{font:inherit;font-size:13px;font-weight:500;color:var(--faint);background:none;border:1px solid transparent;border-radius:6px;padding:4px 8px;cursor:pointer}
 .langs button[aria-pressed=true]{color:var(--yellow);border-color:var(--line)}
-h1{font-size:clamp(34px,6vw,56px);font-weight:600;line-height:1.05;margin:56px 0 10px}
+.btn{display:inline-block;color:var(--navy);background:var(--yellow);text-decoration:none;font-weight:600;font-size:15px;padding:9px 16px;border-radius:8px;white-space:nowrap;border:0;cursor:pointer;font-family:inherit}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:none;color:#fff;border:1px solid var(--line)}
+/* hero */
+.hero{padding:56px 0 24px}
+h1{font-size:clamp(36px,6vw,60px);font-weight:600;line-height:1.05;letter-spacing:-.02em}
 h1 span{color:var(--yellow)}
-.lead{color:var(--faint);font-size:19px;margin-bottom:40px}
-article{background:var(--navy-2);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:28px}
-video{display:block;width:100%;aspect-ratio:16/9;background:#000}
-.meta{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 22px}
-.meta b{color:var(--yellow);font-weight:600;margin-right:10px}
-.meta h2{font-size:22px;font-weight:600}
-.meta a{color:var(--navy);background:var(--yellow);text-decoration:none;font-weight:600;font-size:15px;padding:9px 16px;border-radius:8px}
-.meta a:hover{filter:brightness(1.08)}
-#tools h2{font-size:28px;font-weight:600;margin:56px 0 18px}
-.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.lead{color:var(--faint);font-size:19px;margin-top:12px;max-width:720px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:34px}
+.tile{display:block;text-decoration:none;background:var(--navy-2);border:1px solid var(--line);border-radius:14px;padding:20px 20px 18px;transition:border-color .15s}
+.tile:hover{border-color:var(--yellow)}
+.tile .n{font-size:34px;font-weight:600;color:var(--yellow);line-height:1}
+.tile .t{font-size:18px;font-weight:600;margin-top:10px}
+.tile .d{font-size:14px;color:var(--faint);margin-top:4px}
+/* sections */
+section{padding:48px 0 8px;scroll-margin-top:72px}
+section>.wrap>h2{font-size:30px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--faint);font-size:16px;margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 6px}
+.chips button{font:inherit;font-size:14px;font-weight:500;color:var(--faint);background:var(--navy-2);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.chips button[aria-pressed=true]{color:var(--navy);background:var(--yellow);border-color:var(--yellow)}
+.track{margin-top:26px}
+.track h3{font-size:17px;font-weight:600;color:var(--faint);display:flex;align-items:center;gap:10px}
+.track h3 b{color:var(--navy);background:var(--yellow);border-radius:6px;padding:1px 8px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:14px}
+.card{background:var(--navy-2);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;min-height:190px}
+.card .id{font-size:13px;font-weight:600;color:var(--yellow)}
+.card h4{font-size:19px;font-weight:600;line-height:1.3}
+.card p{color:var(--faint);font-size:15px;line-height:1.5;flex:1}
+.card .acts{display:flex;gap:8px;flex-wrap:wrap}
+.card .acts .btn{font-size:14px;padding:7px 12px}
+.card.soon{background:none;border-style:dashed}
+.card.soon .id,.card.soon h4,.card.soon p{color:var(--dim)}
+.card.soon .tag{font-size:13px;color:var(--dim)}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:22px}
 .tool{background:var(--navy-2);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px}
 .tool h3{font-size:20px;font-weight:600}
 .tool p{color:var(--faint);font-size:15px;line-height:1.5;flex:1}
-.tool a{align-self:flex-start;color:var(--navy);background:var(--yellow);text-decoration:none;font-weight:600;font-size:15px;padding:9px 16px;border-radius:8px}
-.tool a:hover{filter:brightness(1.08)}
-.docs{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--navy-2);border:1px solid var(--line);border-left:4px solid var(--yellow);border-radius:14px;padding:16px 22px;margin:-12px 0 36px}
-.docs p{color:var(--faint);font-size:16px}
-.docs a{color:var(--navy);background:var(--yellow);text-decoration:none;font-weight:600;font-size:15px;padding:9px 16px;border-radius:8px;white-space:nowrap}
-.docs a:hover{filter:brightness(1.08)}
-footer{color:var(--faint);font-size:14px;margin-top:40px}
+.tool .btn{align-self:flex-start}
+.empty{margin-top:22px;background:none;border:1px dashed var(--line);border-radius:14px;padding:26px;color:var(--faint);font-size:16px}
+.band{margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:var(--navy-2);border:1px solid var(--line);border-left:4px solid var(--yellow);border-radius:14px;padding:22px 26px}
+.band p{color:var(--faint);font-size:16px;max-width:680px}
+.band strong{display:block;color:#fff;font-size:20px;font-weight:600;margin-bottom:4px}
+footer{color:var(--faint);font-size:14px;padding:56px 0 48px}
 footer a{color:var(--faint)}
 button:focus-visible,a:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+@media (max-width:860px){.menu{display:none}.tiles{grid-template-columns:1fr 1fr}.top .book{display:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header><svg viewBox="0 0 240 48" role="img" aria-label="ANYWAYS"><g transform="translate(0,4)">
+<div class="top"><div class="wrap">
+  <svg viewBox="0 0 240 48" role="img" aria-label="ANYWAYS"><g transform="translate(0,4)">
   <g transform="translate(0,0)">
     <g transform="scale(1.6667)" fill="#ffc000" stroke="none">
       <g transform="rotate(180,12,12)">
@@ -67,29 +97,107 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--yellow);outline-off
     <text x="49" y="29" fill="#ffffff"
           font-family="'HK Grotesk','Segoe UI',system-ui,sans-serif"
           font-size="22" font-weight="400" letter-spacing="1.8">ANYWAYS</text>
-  </g></g></svg><nav class="langs" aria-label="Language"></nav></header>
+  </g></g></svg>
+  <nav class="menu" aria-label="Sections">
+    <a href="#tutorials" data-t="tutorials"></a><a href="#tools" data-t="tools"></a><a href="#demos" data-t="demos"></a><a href="https://docs.anyways.eu/" data-t="docs"></a>
+  </nav>
+  <nav class="langs" aria-label="Language"></nav>
+  <a class="btn book" href="https://calendar.proton.me/bookings#FuuqA1DDp9fBlzFijOYO5yzqMs8W3P_ImvXY69aopbk=" target="_blank" rel="noopener" data-t="book"></a>
+</div></div>
+
+<div class="wrap hero">
   <h1>ANYWAYS <span>Academy</span></h1>
   <p class="lead" id="lead"></p>
-  <div class="docs"><p id="docs-text"></p><a id="docs-link" href="https://docs.anyways.eu/"></a></div>
-  <main id="list"></main>
-  <section id="tools" hidden><h2></h2><div class="tools"></div></section>
-  <footer><a href="https://www.anyways.eu">www.anyways.eu</a> · <a href="https://docs.anyways.eu/">docs.anyways.eu</a></footer>
+  <div class="tiles">
+    <a class="tile" href="#tutorials"><div class="n" id="n-tut"></div><div class="t" data-t="tutorials"></div><div class="d" data-t="tutorials_d"></div></a>
+    <a class="tile" href="#tools"><div class="n" id="n-tools"></div><div class="t" data-t="tools"></div><div class="d" data-t="tools_d"></div></a>
+    <a class="tile" href="#demos"><div class="n" id="n-demos"></div><div class="t" data-t="demos"></div><div class="d" data-t="demos_d"></div></a>
+    <a class="tile" href="https://calendar.proton.me/bookings#FuuqA1DDp9fBlzFijOYO5yzqMs8W3P_ImvXY69aopbk=" target="_blank" rel="noopener"><div class="n">1:1</div><div class="t" data-t="book"></div><div class="d" data-t="book_d"></div></a>
+  </div>
 </div>
-<script type="application/json" id="data">{"items": [{"id": "A1.1", "titles": {"de": "Die ANYWAYS-App im Überblick", "en": "Find your way around the ANYWAYS app", "es": "Conozca la aplicación ANYWAYS", "fr": "Prendre en main l'application ANYWAYS"}, "videos": {"de": "A1.1/A1.1_v1_de.mp4", "en": "A1.1/A1.1_v1_en.mp4", "es": "A1.1/A1.1_v1_es.mp4", "fr": "A1.1/A1.1_v1_fr.mp4"}, "slides": "A1.1/A1.1_v1_slides.html"}, {"id": "A1.2", "titles": {"de": "Ihr erstes Projekt anlegen", "en": "Create your first project", "es": "Cree su primer proyecto", "fr": "Créer votre premier projet"}, "videos": {"de": "A1.2/A1.2_v3_de.mp4", "en": "A1.2/A1.2_v3_en.mp4", "es": "A1.2/A1.2_v3_es.mp4", "fr": "A1.2/A1.2_v3_fr.mp4"}, "slides": "A1.2/A1.2_v3_slides.html"}, {"id": "B1.1", "titles": {"de": "Eine Straße sperren", "en": "Close a road", "es": "Cerrar una calle", "fr": "Fermer une route"}, "videos": {"de": "B1.1/B1.1_v1_de.mp4", "en": "B1.1/B1.1_v1_en.mp4", "es": "B1.1/B1.1_v1_es.mp4", "fr": "B1.1/B1.1_v1_fr.mp4"}, "slides": "B1.1/B1.1_v1_slides.html"}, {"id": "F1.1", "titles": {"de": "Routenplanung in QGIS", "en": "Route planning in QGIS", "es": "Cálculo de rutas en QGIS", "fr": "Calcul d'itinéraires dans QGIS"}, "videos": {"de": "F1.1/F1.1_v1_de.mp4", "en": "F1.1/F1.1_v1_en.mp4", "es": "F1.1/F1.1_v1_es.mp4", "fr": "F1.1/F1.1_v1_fr.mp4"}, "slides": "F1.1/F1.1_v1_slides.html"}], "tools": [{"href": "tools/kilometre-statistics.html", "title": "Kilometre statistics", "desc": "Drop the GeoJSON files of an ANYWAYS report export and get the kilometres travelled, trip lengths, road types, busiest streets and an estimated travel time. Download as CSV or Word report. Everything runs in your browser."}, {"href": "tools/masterplan-designer.html", "title": "Masterplan Designer", "desc": "Sketch a masterplan on the map: buildings, programme and street profiles, with a 3D view, land-use balance, trip generation, parking demand and a cost estimate. Export to ANYWAYS. Interface in Dutch."}, {"href": "tools/isochrones.html", "title": "Isochrones", "desc": "Comparative car isochrones from an ANYWAYS network export. Load one or two scenarios, click a place on the map, and see the road network reachable per time band — or the difference between the two. One-way streets are respected. Everything runs in your browser. Interface in French."}, {"href": "tools/anyways-sumo-routes.html", "title": "ANYWAYS to SUMO routes", "desc": "Load an assigned ANYWAYS matrix (GeoJSON from the QGIS plugin), zoom in on one of the signalised junctions in Geel and download a .rou.xml for its SUMO base model. Turning movements are fitted to the ANYWAYS volumes per arm. Everything runs in your browser. Interface in Dutch."}], "langs": ["en", "de", "es", "fr"], "names": {"en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "nl": "Nederlands"}}</script>
+
+<section id="tutorials"><div class="wrap">
+  <h2 data-t="tutorials"></h2>
+  <p class="sub" data-t="tutorials_sub"></p>
+  <div class="chips" id="chips"></div>
+  <div id="tracks"></div>
+</div></section>
+
+<section id="tools"><div class="wrap">
+  <h2 data-t="tools"></h2>
+  <p class="sub" data-t="tools_sub"></p>
+  <div class="tools" id="toollist"></div>
+</div></section>
+
+<section id="demos"><div class="wrap">
+  <h2 data-t="demos"></h2>
+  <p class="sub" data-t="demos_sub"></p>
+  <div class="tools" id="demolist"></div>
+</div></section>
+
+<section id="help"><div class="wrap">
+  <div class="band"><p><strong data-t="docs_h"></strong><span data-t="docs_p"></span></p><a class="btn ghost" href="https://docs.anyways.eu/" data-t="docs_btn"></a></div>
+  <div class="band"><p><strong data-t="book_h"></strong><span data-t="book_p"></span></p><a class="btn" href="https://calendar.proton.me/bookings#FuuqA1DDp9fBlzFijOYO5yzqMs8W3P_ImvXY69aopbk=" target="_blank" rel="noopener" data-t="book"></a></div>
+</div></section>
+
+<footer><div class="wrap"><a href="https://www.anyways.eu">www.anyways.eu</a> · <a href="https://docs.anyways.eu/">docs.anyways.eu</a></div></footer>
+
+
+<script type="application/json" id="data">{"items": [{"id": "A1.1", "titles": {"de": "Die ANYWAYS-App im Überblick", "en": "Find your way around the ANYWAYS app", "es": "Conozca la aplicación ANYWAYS", "fr": "Prendre en main l'application ANYWAYS"}, "videos": {"de": "A1.1/A1.1_v1_de.mp4", "en": "A1.1/A1.1_v1_en.mp4", "es": "A1.1/A1.1_v1_es.mp4", "fr": "A1.1/A1.1_v1_fr.mp4"}, "slides": "A1.1/A1.1_v1_slides.html"}, {"id": "A1.2", "titles": {"de": "Ihr erstes Projekt anlegen", "en": "Create your first project", "es": "Cree su primer proyecto", "fr": "Créer votre premier projet"}, "videos": {"de": "A1.2/A1.2_v3_de.mp4", "en": "A1.2/A1.2_v3_en.mp4", "es": "A1.2/A1.2_v3_es.mp4", "fr": "A1.2/A1.2_v3_fr.mp4"}, "slides": "A1.2/A1.2_v3_slides.html"}, {"id": "B1.1", "titles": {"de": "Eine Straße sperren", "en": "Close a road", "es": "Cerrar una calle", "fr": "Fermer une route"}, "videos": {"de": "B1.1/B1.1_v1_de.mp4", "en": "B1.1/B1.1_v1_en.mp4", "es": "B1.1/B1.1_v1_es.mp4", "fr": "B1.1/B1.1_v1_fr.mp4"}, "slides": "B1.1/B1.1_v1_slides.html"}, {"id": "F1.1", "titles": {"de": "Routenplanung in QGIS", "en": "Route planning in QGIS", "es": "Cálculo de rutas en QGIS", "fr": "Calcul d'itinéraires dans QGIS"}, "videos": {"de": "F1.1/F1.1_v1_de.mp4", "en": "F1.1/F1.1_v1_en.mp4", "es": "F1.1/F1.1_v1_es.mp4", "fr": "F1.1/F1.1_v1_fr.mp4"}, "slides": "F1.1/F1.1_v1_slides.html"}], "tools": [{"href": "tools/kilometre-statistics.html", "title": "Kilometre statistics", "desc": "Drop the GeoJSON files of an ANYWAYS report export and get the kilometres travelled, trip lengths, road types, busiest streets and an estimated travel time. Download as CSV or Word report. Everything runs in your browser."}, {"href": "tools/masterplan-designer.html", "title": "Masterplan Designer", "desc": "Sketch a masterplan on the map: buildings, programme and street profiles, with a 3D view, land-use balance, trip generation, parking demand and a cost estimate. Export to ANYWAYS. Interface in Dutch."}, {"href": "tools/isochrones.html", "title": "Isochrones", "desc": "Comparative car isochrones from an ANYWAYS network export. Load one or two scenarios, click a place on the map, and see the road network reachable per time band — or the difference between the two. One-way streets are respected. Everything runs in your browser. Interface in French."}, {"href": "tools/anyways-sumo-routes.html", "title": "ANYWAYS to SUMO routes", "desc": "Load an assigned ANYWAYS matrix (GeoJSON from the QGIS plugin), zoom in on one of the signalised junctions in Geel and download a .rou.xml for its SUMO base model. Turning movements are fitted to the ANYWAYS volumes per arm. Everything runs in your browser. Interface in Dutch."}], "demos": [], "catalogue": [{"id": "A1.1", "track": "A", "title": "Find your way around the ANYWAYS app", "desc": "Where to find projects, scenarios, datasets and the map."}, {"id": "A1.2", "track": "A", "title": "Create your first project", "desc": "Create a project for the city or municipality you work on."}, {"id": "A1.3", "track": "A", "title": "Baseline and comparison scenario", "desc": "Scenario 0 as the reference, Scenario 1 as the what-if, and what a scenario contains."}, {"id": "A1.4", "track": "A", "title": "Copy a project", "desc": "Make a copy of a project, also into another organization."}, {"id": "A1.5", "track": "A", "title": "Invite colleagues to your organization", "desc": "Invite a colleague, and the difference between admin and member."}, {"id": "B1.1", "track": "B", "title": "Close a road", "desc": "Close a street in a network and watch traffic take another route."}, {"id": "B1.2", "track": "B", "title": "Make a street one-way", "desc": "Make a street one-way, in the right direction."}, {"id": "B1.3", "track": "B", "title": "Change the speed limit", "desc": "Change the speed limit of a street."}, {"id": "B1.4", "track": "B", "title": "Add a modal filter", "desc": "Close a street to cars and trucks, while cyclists and pedestrians can still pass."}, {"id": "B1.5", "track": "B", "title": "Slow down traffic with delays", "desc": "Draw a delay (peak hour, bottleneck, traffic light) and add it to a scenario."}, {"id": "C1.1", "track": "C", "title": "Draw manual trips on the map", "desc": "Draw a few trips yourself: origin, destination and number."}, {"id": "C1.2", "track": "C", "title": "Add traffic counts as a counter dataset", "desc": "Build a dataset from traffic counts, with your own or public counters."}, {"id": "C1.3", "track": "C", "title": "Create a Location of Interest dataset", "desc": "Simulate trips to and from one site: a school, a supermarket, a company."}, {"id": "C1.4", "track": "C", "title": "Link a dataset to a scenario", "desc": "Link an existing dataset to a scenario and pick a colour."}, {"id": "D1.1", "track": "D", "title": "Read a difference plot", "desc": "Compare two scenarios and see where it gets busier and where quieter."}, {"id": "D1.2", "track": "D", "title": "Compare travel times with the route planner", "desc": "Compare a route (length, travel time) on the current and the changed network."}, {"id": "D1.3", "track": "D", "title": "Check the effect on a single street", "desc": "Click a street and see the number of vehicles and the routes through it."}, {"id": "E1.1", "track": "E", "title": "Publish a route planner", "desc": "Make a route planner public, so anyone with the link can use it."}, {"id": "E1.2", "track": "E", "title": "Export a dataset as GeoJSON", "desc": "Download the trips of a dataset as GeoJSON."}, {"id": "F1.1", "track": "F", "title": "Route planning in QGIS", "desc": "Sign in to QGIS with your ANYWAYS account, load a dataset and route it on two networks."}, {"id": "F1.2", "track": "F", "title": "Connect AI tools through MCP", "desc": "Connect an AI assistant to ANYWAYS through the MCP server and ask a first question."}], "langs": ["en", "de", "es", "fr"], "names": {"en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "nl": "Nederlands"}}</script>
 <script>
 const D = JSON.parse(document.getElementById('data').textContent);
-const LEAD = {en:'Short tutorials on how to use ANYWAYS.', fr:'De courts tutoriels pour utiliser ANYWAYS.',
-  de:'Kurze Tutorials zur Nutzung von ANYWAYS.', es:'Tutoriales breves sobre cómo usar ANYWAYS.', nl:'Korte tutorials over het gebruik van ANYWAYS.'};
-const READ = {en:'Read as slides', fr:'Lire en diapositives', de:'Als Folien lesen', es:'Leer como diapositivas', nl:'Lezen als slides'};
-const DOCS = {en:['Looking for details? The full manual is on docs.anyways.eu.','Open the documentation'],
-  fr:['Besoin de plus de détails ? Le manuel complet se trouve sur docs.anyways.eu.','Ouvrir la documentation'],
-  de:['Mehr Details? Das vollständige Handbuch finden Sie auf docs.anyways.eu.','Dokumentation öffnen'],
-  es:['¿Busca más detalles? El manual completo está en docs.anyways.eu.','Abrir la documentación'],
-  nl:['Meer details nodig? De volledige handleiding staat op docs.anyways.eu.','Open de documentatie']};
-const TOOLS = {en:'Tools', fr:'Outils', de:'Werkzeuge', es:'Herramientas', nl:'Tools'};
-const OPEN = {en:'Open tool', fr:'Ouvrir l’outil', de:'Werkzeug öffnen', es:'Abrir herramienta', nl:'Tool openen'};
+const T = {
+ en:{tutorials:'Tutorials',tools:'Tools',demos:'Demo projects',docs:'Documentation',book:'Book a session',
+     lead:'Short tutorials, tools and example projects to get the most out of ANYWAYS.',
+     tutorials_d:'videos of about a minute',tools_d:'free browser tools',demos_d:'ready-made projects',book_d:'a call with Wim',
+     tutorials_sub:'One task per video, silent, with subtitles. Pick a track or browse them all.',all:'All',watch:'Watch',slides:'Read as slides',soon:'Coming soon',
+     tools_sub:'Small tools that work with ANYWAYS exports. Everything runs in your browser.',open:'Open tool',
+     demos_sub:'Example projects you can open and explore in ANYWAYS.',demos_empty:'Coming soon: example projects for circulation plans, road works and new developments.',
+     docs_h:'Looking for details?',docs_p:'The full manual is on docs.anyways.eu.',docs_btn:'Open the documentation',
+     book_h:'Questions or a project to discuss?',book_p:'Book a session with Wim Michiels, traffic engineer and co-founder of ANYWAYS.'},
+ fr:{tutorials:'Tutoriels',tools:'Outils',demos:'Projets de démonstration',docs:'Documentation',book:'Réserver un rendez-vous',
+     lead:'De courts tutoriels, des outils et des projets d’exemple pour tirer le meilleur d’ANYWAYS.',
+     tutorials_d:'vidéos d’environ une minute',tools_d:'outils gratuits dans le navigateur',demos_d:'projets prêts à l’emploi',book_d:'un appel avec Wim',
+     tutorials_sub:'Une tâche par vidéo, sans voix, avec sous-titres. Choisissez un parcours ou parcourez-les tous.',all:'Tous',watch:'Regarder',slides:'Lire en diapositives',soon:'Bientôt',
+     tools_sub:'De petits outils qui utilisent les exports d’ANYWAYS. Tout fonctionne dans votre navigateur.',open:'Ouvrir l’outil',
+     demos_sub:'Des projets d’exemple à ouvrir et explorer dans ANYWAYS.',demos_empty:'Bientôt : des projets d’exemple pour des plans de circulation, des chantiers et de nouveaux développements.',
+     docs_h:'Besoin de plus de détails ?',docs_p:'Le manuel complet se trouve sur docs.anyways.eu.',docs_btn:'Ouvrir la documentation',
+     book_h:'Une question ou un projet à discuter ?',book_p:'Réservez un rendez-vous avec Wim Michiels, ingénieur trafic et cofondateur d’ANYWAYS.'},
+ de:{tutorials:'Tutorials',tools:'Werkzeuge',demos:'Demoprojekte',docs:'Dokumentation',book:'Termin buchen',
+     lead:'Kurze Tutorials, Werkzeuge und Beispielprojekte, um das Beste aus ANYWAYS herauszuholen.',
+     tutorials_d:'Videos von etwa einer Minute',tools_d:'kostenlose Browser-Werkzeuge',demos_d:'fertige Projekte',book_d:'ein Gespräch mit Wim',
+     tutorials_sub:'Eine Aufgabe pro Video, ohne Ton, mit Untertiteln. Wählen Sie einen Bereich oder sehen Sie alle durch.',all:'Alle',watch:'Ansehen',slides:'Als Folien lesen',soon:'Demnächst',
+     tools_sub:'Kleine Werkzeuge für ANYWAYS-Exporte. Alles läuft in Ihrem Browser.',open:'Werkzeug öffnen',
+     demos_sub:'Beispielprojekte zum Öffnen und Erkunden in ANYWAYS.',demos_empty:'Demnächst: Beispielprojekte für Verkehrskonzepte, Baustellen und neue Entwicklungen.',
+     docs_h:'Mehr Details?',docs_p:'Das vollständige Handbuch finden Sie auf docs.anyways.eu.',docs_btn:'Dokumentation öffnen',
+     book_h:'Fragen oder ein Projekt?',book_p:'Buchen Sie einen Termin mit Wim Michiels, Verkehrsplaner und Mitgründer von ANYWAYS.'},
+ es:{tutorials:'Tutoriales',tools:'Herramientas',demos:'Proyectos de demostración',docs:'Documentación',book:'Reservar una sesión',
+     lead:'Tutoriales breves, herramientas y proyectos de ejemplo para sacar el máximo partido a ANYWAYS.',
+     tutorials_d:'vídeos de un minuto aprox.',tools_d:'herramientas gratuitas en el navegador',demos_d:'proyectos listos para usar',book_d:'una llamada con Wim',
+     tutorials_sub:'Una tarea por vídeo, sin voz, con subtítulos. Elija un bloque o véalos todos.',all:'Todos',watch:'Ver',slides:'Leer como diapositivas',soon:'Próximamente',
+     tools_sub:'Pequeñas herramientas que trabajan con exportaciones de ANYWAYS. Todo funciona en su navegador.',open:'Abrir herramienta',
+     demos_sub:'Proyectos de ejemplo para abrir y explorar en ANYWAYS.',demos_empty:'Próximamente: proyectos de ejemplo de planes de circulación, obras y nuevos desarrollos.',
+     docs_h:'¿Busca más detalles?',docs_p:'El manual completo está en docs.anyways.eu.',docs_btn:'Abrir la documentación',
+     book_h:'¿Preguntas o un proyecto que comentar?',book_p:'Reserve una sesión con Wim Michiels, ingeniero de tráfico y cofundador de ANYWAYS.'},
+ nl:{tutorials:'Tutorials',tools:'Tools',demos:'Demoprojecten',docs:'Documentatie',book:'Boek een afspraak',
+     lead:'Korte tutorials, tools en voorbeeldprojecten om het meeste uit ANYWAYS te halen.',
+     tutorials_d:'video’s van ongeveer een minuut',tools_d:'gratis tools in de browser',demos_d:'kant-en-klare projecten',book_d:'een gesprek met Wim',
+     tutorials_sub:'Eén taak per video, zonder stem, met ondertitels. Kies een reeks of bekijk ze allemaal.',all:'Alle',watch:'Bekijken',slides:'Lezen als slides',soon:'Binnenkort',
+     tools_sub:'Kleine tools die werken met exports uit ANYWAYS. Alles draait in je browser.',open:'Tool openen',
+     demos_sub:'Voorbeeldprojecten om te openen en te verkennen in ANYWAYS.',demos_empty:'Binnenkort: voorbeeldprojecten voor circulatieplannen, wegenwerken en nieuwe ontwikkelingen.',
+     docs_h:'Meer details nodig?',docs_p:'De volledige handleiding staat op docs.anyways.eu.',docs_btn:'Open de documentatie',
+     book_h:'Vragen of een project om te bespreken?',book_p:'Boek een afspraak met Wim Michiels, verkeerskundige en medeoprichter van ANYWAYS.'}
+};
+const TRACKS = {
+ A:{en:'Getting started',fr:'Premiers pas',de:'Erste Schritte',es:'Primeros pasos',nl:'Aan de slag'},
+ B:{en:'Editing the network',fr:'Modifier le réseau',de:'Netz bearbeiten',es:'Editar la red',nl:'Netwerk bewerken'},
+ C:{en:'Datasets',fr:'Jeux de données',de:'Datensätze',es:'Conjuntos de datos',nl:'Datasets'},
+ D:{en:'Analysing results',fr:'Analyser les résultats',de:'Ergebnisse analysieren',es:'Analizar resultados',nl:'Resultaten analyseren'},
+ E:{en:'Sharing and exporting',fr:'Partager et exporter',de:'Teilen und exportieren',es:'Compartir y exportar',nl:'Delen en exporteren'},
+ F:{en:'QGIS and AI',fr:'QGIS et IA',de:'QGIS und KI',es:'QGIS e IA',nl:'QGIS en AI'}};
 const store = {get(){try{return localStorage.getItem('academy-lang')}catch(e){return null}},
                set(v){try{localStorage.setItem('academy-lang', v)}catch(e){}}};
+const UI_LANGS = ['en','fr','de','es','nl'];
 function pick(){
   const q = new URLSearchParams(location.search).get('lang');
   for (const c of [q, store.get(), ...(navigator.languages || [navigator.language])]) {
@@ -97,27 +205,40 @@ function pick(){
   }
   return 'en';
 }
-let lang = pick();
+let lang = pick(), track = 'all';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tr = k => (T[lang] && T[lang][k]) || T.en[k];
+const byId = Object.fromEntries(D.items.map(it => [it.id, it]));
+
 function render(){
   document.documentElement.lang = lang;
-  document.getElementById('lead').textContent = LEAD[lang] || LEAD.en;
-  const dc = DOCS[lang] || DOCS.en;
-  document.getElementById('docs-text').textContent = dc[0];
-  document.getElementById('docs-link').textContent = dc[1];
+  document.querySelectorAll('[data-t]').forEach(e => e.textContent = tr(e.dataset.t));
+  document.getElementById('lead').textContent = tr('lead');
   document.querySelectorAll('.langs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === lang));
-  document.getElementById('list').innerHTML = D.items.map(it => {
-    const v = it.videos[lang] || it.videos.en, t = it.titles[lang] || it.titles.en;
-    const slides = it.slides ? `<a href="${esc(it.slides)}?lang=${lang}">${esc(READ[lang] || READ.en)}</a>` : '';
-    return `<article><video controls preload="metadata" src="${esc(v)}"></video>
-      <div class="meta"><h2><b>${esc(it.id)}</b>${esc(t)}</h2>${slides}</div></article>`;
+  document.getElementById('n-tut').textContent = D.items.length;
+  document.getElementById('n-tools').textContent = D.tools.length;
+  document.getElementById('n-demos').textContent = D.demos.length || '—';
+  const letters = [...new Set(D.catalogue.map(c => c.track))];
+  document.getElementById('chips').innerHTML = ['all', ...letters].map(l =>
+    `<button data-tr="${l}" aria-pressed="${l === track}">${l === 'all' ? esc(tr('all')) : esc(l + ' · ' + (TRACKS[l][lang] || TRACKS[l].en))}</button>`).join('');
+  document.getElementById('tracks').innerHTML = letters.filter(l => track === 'all' || l === track).map(l => {
+    const cards = D.catalogue.filter(c => c.track === l).map(c => {
+      const it = byId[c.id];
+      const desc = c.desc ? `<p>${esc(c.desc)}</p>` : '';
+      if (!it) return `<div class="card soon"><div class="id">${esc(c.id)}</div><h4>${esc(c.title)}</h4>${desc}<div class="tag">${esc(tr('soon'))}</div></div>`;
+      const t = it.titles[lang] || it.titles.en;
+      const sl = it.slides ? `<a class="btn ghost" href="${esc(it.slides)}?lang=${lang}">${esc(tr('slides'))}</a>` : '';
+      return `<div class="card"><div class="id">${esc(c.id)}</div><h4>${esc(t)}</h4>${desc}<div class="acts"><a class="btn" href="watch.html?id=${encodeURIComponent(c.id)}&lang=${lang}">▶ ${esc(tr('watch'))}</a>${sl}</div></div>`;
+    }).join('');
+    return `<div class="track"><h3><b>${l}</b>${esc(TRACKS[l][lang] || TRACKS[l].en)}</h3><div class="grid">${cards}</div></div>`;
   }).join('');
-  const sec = document.getElementById('tools');
-  sec.hidden = !(D.tools && D.tools.length);
-  sec.querySelector('h2').textContent = TOOLS[lang] || TOOLS.en;
-  sec.querySelector('.tools').innerHTML = (D.tools || []).map(t =>
-    `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.desc)}</p><a href="${esc(t.href)}">${esc(OPEN[lang] || OPEN.en)}</a></div>`).join('');
+  document.getElementById('toollist').innerHTML = D.tools.map(t =>
+    `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.desc)}</p><a class="btn" href="${esc(t.href)}">${esc(tr('open'))}</a></div>`).join('');
+  document.getElementById('demolist').innerHTML = D.demos.length ? D.demos.map(d =>
+    `<div class="tool"><h3>${esc(d.title)}</h3><p>${esc(d.desc)}</p><a class="btn" href="${esc(d.href)}" target="_blank" rel="noopener">${esc(d.button || 'Open')}</a></div>`).join('')
+    : `<div class="empty">${esc(tr('demos_empty'))}</div>`;
 }
+document.getElementById('chips').addEventListener('click', e => { const b = e.target.closest('[data-tr]'); if (b) { track = b.dataset.tr; render(); } });
 const nav = document.querySelector('.langs');
 nav.innerHTML = D.langs.map(l => `<button data-l="${l}" title="${esc(D.names[l] || l)}">${l.toUpperCase()}</button>`).join('');
 nav.addEventListener('click', e => { if (e.target.dataset.l) { lang = e.target.dataset.l; store.set(lang); render(); } });
